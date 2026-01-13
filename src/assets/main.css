@@ -1,0 +1,12 @@
+/* Убираем все лишние отступы у браузера */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Чтобы не было прокрутки, если стикер уедет за край */
+}
