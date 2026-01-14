@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed, watch } from 'vue'
-import { marked } from 'marked'
+import MarkdownEditor from './MarkdownEditor.vue'
 
 interface Props {
   id: number
@@ -15,62 +14,11 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['update', 'delete', 'drag-start'])
 
-const isEditing = ref(false)
-const contentRef = ref<HTMLElement | null>(null)
 const colors = ['#fff9c4', '#ffccbc', '#c8e6c9', '#b3e5fc', '#d1c4e9', '#ffffff']
 
-const draft = ref(props.text)
-
-watch(
-  () => props.text,
-  (v) => {
-    draft.value = v
-  },
-)
-
-const renderedMarkdown = computed(() => {
-  return marked.parse(draft.value || '')
-})
-
-const startEditing = async () => {
-  isEditing.value = true
-  await nextTick()
-  if (contentRef.value) {
-    contentRef.value.innerText = draft.value || ''
-    contentRef.value.focus()
-    const range = document.createRange()
-    range.selectNodeContents(contentRef.value)
-    range.collapse(false)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-  }
+const handleTextUpdate = (newText: string) => {
+  emit('update', { id: props.id, text: newText })
 }
-
-const stopEditing = () => {
-  isEditing.value = false
-  emit('update', { id: props.id, text: draft.value })
-}
-
-const cancelEditing = () => {
-  draft.value = props.text
-  if (contentRef.value) contentRef.value.innerText = draft.value
-  isEditing.value = false
-}
-
-const handleInput = (event: Event) => {
-  const target = event.target as HTMLElement
-  draft.value = target.innerText
-}
-
-onMounted(async () => {
-  if (props.isNew) {
-    await nextTick()
-    setTimeout(() => {
-      startEditing()
-    }, 50)
-  }
-})
 
 const changeColor = (newColor: string) => {
   emit('update', { id: props.id, color: newColor })
@@ -106,20 +54,11 @@ const changeColor = (newColor: string) => {
       </svg>
     </button>
 
-    <div
-      v-if="isEditing"
-      ref="contentRef"
-      class="content"
-      contenteditable="true"
-      @input="handleInput"
-      @blur="stopEditing"
-      @keydown.esc.prevent="cancelEditing"
-      @keydown.enter.ctrl.prevent="stopEditing"
-      @mousedown.stop
-      data-placeholder="Новая заметка"
-    ></div>
-
-    <div v-else class="content preview" v-html="renderedMarkdown" @dblclick="startEditing"></div>
+    <MarkdownEditor
+      :modelValue="props.text"
+      :isNew="props.isNew"
+      @update:modelValue="handleTextUpdate"
+    />
   </div>
 </template>
 
@@ -226,20 +165,5 @@ const changeColor = (newColor: string) => {
 
 .color-dot:hover {
   transform: scale(1.3);
-}
-
-.content:empty:before {
-  content: attr(data-placeholder);
-  color: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-  display: block;
-}
-
-.content {
-  outline: none;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 16px;
-  min-height: 150px;
-  width: 100%;
 }
 </style>
