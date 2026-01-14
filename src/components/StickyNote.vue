@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
+import { marked } from 'marked'
 
 interface Props {
   id: number
@@ -14,22 +15,62 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['update', 'delete', 'drag-start'])
 
+const isEditing = ref(false)
 const contentRef = ref<HTMLElement | null>(null)
 const colors = ['#fff9c4', '#ffccbc', '#c8e6c9', '#b3e5fc', '#d1c4e9', '#ffffff']
 
-onMounted(async () => {
-  if (props.isNew && contentRef.value) {
-    await nextTick()
-    setTimeout(() => {
-      contentRef.value?.focus()
-    }, 50)
-  }
+const draft = ref(props.text)
+
+watch(
+  () => props.text,
+  (v) => {
+    draft.value = v
+  },
+)
+
+const renderedMarkdown = computed(() => {
+  return marked.parse(draft.value || '')
 })
+
+const startEditing = async () => {
+  isEditing.value = true
+  await nextTick()
+  if (contentRef.value) {
+    contentRef.value.innerText = draft.value || ''
+    contentRef.value.focus()
+    const range = document.createRange()
+    range.selectNodeContents(contentRef.value)
+    range.collapse(false)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+  }
+}
+
+const stopEditing = () => {
+  isEditing.value = false
+  emit('update', { id: props.id, text: draft.value })
+}
+
+const cancelEditing = () => {
+  draft.value = props.text
+  if (contentRef.value) contentRef.value.innerText = draft.value
+  isEditing.value = false
+}
 
 const handleInput = (event: Event) => {
   const target = event.target as HTMLElement
-  emit('update', { id: props.id, text: target.innerText })
+  draft.value = target.innerText
 }
+
+onMounted(async () => {
+  if (props.isNew) {
+    await nextTick()
+    setTimeout(() => {
+      startEditing()
+    }, 50)
+  }
+})
 
 const changeColor = (newColor: string) => {
   emit('update', { id: props.id, color: newColor })
@@ -66,16 +107,19 @@ const changeColor = (newColor: string) => {
     </button>
 
     <div
+      v-if="isEditing"
       ref="contentRef"
       class="content"
       contenteditable="true"
       @input="handleInput"
+      @blur="stopEditing"
+      @keydown.esc.prevent="cancelEditing"
+      @keydown.enter.ctrl.prevent="stopEditing"
       @mousedown.stop
-      v-once
       data-placeholder="Новая заметка"
-    >
-      {{ props.text }}
-    </div>
+    ></div>
+
+    <div v-else class="content preview" v-html="renderedMarkdown" @dblclick="startEditing"></div>
   </div>
 </template>
 
@@ -146,9 +190,29 @@ const changeColor = (newColor: string) => {
   display: flex;
   gap: 8px;
   background: white;
-  padding: 5px 10px;
+  padding: 10px 10px;
   border-radius: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 20;
+}
+
+.sticky-note:hover .color-picker {
+  opacity: 1;
+  pointer-events: auto;
+  top: -40px;
+}
+
+.color-picker::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  right: 0;
+  height: 15px;
 }
 
 .color-dot {

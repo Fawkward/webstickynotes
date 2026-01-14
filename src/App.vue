@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import StickyNote from './components/StickyNote.vue'
 
 interface Note {
@@ -12,9 +12,31 @@ interface Note {
   rotation: number
 }
 
-const notes = ref<Note[]>([])
+const loadNotes = (): Note[] => {
+  const saved = localStorage.getItem('my-sticky-notes')
+  if (!saved) return []
+
+  try {
+    return JSON.parse(saved)
+  } catch (error) {
+    console.error('Cannot parse your stickernotes:', error)
+    return []
+  }
+}
+
+const notes = ref<Note[]>(loadNotes())
 const draggingNote = ref<Note | null>(null)
 const offset = ref({ x: 0, y: 0 })
+
+watch(
+  notes,
+  (newNotes) => {
+    localStorage.setItem('my-sticky-notes', JSON.stringify(newNotes))
+  },
+  { deep: true },
+)
+
+// localStorage.clear() to clear in browser
 
 const addNote = (event: MouseEvent) => {
   const target = event.target as HTMLElement
