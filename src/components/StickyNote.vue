@@ -1,17 +1,9 @@
 <script setup lang="ts">
 import MarkdownEditor from './MarkdownEditor.vue'
+import type { Note } from '@/types'
 
-interface Props {
-  id: number
-  text: string
-  color: string
-  x: number
-  y: number
-  isNew: boolean
-  rotation: number
-}
+const props = defineProps<Note>()
 
-const props = defineProps<Props>()
 const emit = defineEmits(['update', 'delete', 'drag-start'])
 
 const colors = ['#fff9c4', '#ffccbc', '#c8e6c9', '#b3e5fc', '#d1c4e9', '#ffffff']

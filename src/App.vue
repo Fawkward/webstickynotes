@@ -1,96 +1,31 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
 import StickyNote from './components/StickyNote.vue'
+import { useNotes } from './composables/useNotes' 
+import { useDraggable } from './composables/useDraggable' 
 
-interface Note {
-  id: number
-  text: string
-  color: string
-  x: number
-  y: number
-  isNew: boolean
-  rotation: number
-}
+const { notes, addNote, deleteNote, updateNote } = useNotes()
 
-const loadNotes = (): Note[] => {
-  const saved = localStorage.getItem('my-sticky-notes')
-  if (!saved) return []
+const { startDragging, onMouseMove, stopDragging } = useDraggable()
 
-  try {
-    return JSON.parse(saved)
-  } catch (error) {
-    console.error('Cannot parse your stickernotes:', error)
-    return []
-  }
-}
-
-const notes = ref<Note[]>(loadNotes())
-const draggingNote = ref<Note | null>(null)
-const offset = ref({ x: 0, y: 0 })
-
-watch(
-  notes,
-  (newNotes) => {
-    localStorage.setItem('my-sticky-notes', JSON.stringify(newNotes))
-  },
-  { deep: true },
-)
-
-// localStorage.clear() to clear in browser
-
-const addNote = (event: MouseEvent) => {
+const handleWallClick = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (target.classList.contains('wall')) {
-    const newNote: Note = {
-      id: Date.now(),
-      text: '',
-      color: '#fff9c4',
-      x: event.clientX - 100,
-      y: event.clientY - 20,
-      isNew: true,
-      rotation: Math.floor(Math.random() * 6) - 3,
-    }
-    notes.value.push(newNote)
+    addNote(event.clientX - 100, event.clientY - 20)
   }
 }
 
-const startDragging = (payload: { id: number; x: number; y: number; event: MouseEvent }) => {
+const handleDragStart = (payload: { id: number; event: MouseEvent }) => {
   const note = notes.value.find((n) => n.id === payload.id)
   if (note) {
-    draggingNote.value = note
-    offset.value = { x: payload.event.clientX - note.x, y: payload.event.clientY - note.y }
+    startDragging(note, payload.event)
   }
-}
-
-const onMouseMove = (event: MouseEvent) => {
-  if (draggingNote.value) {
-    draggingNote.value.x = event.clientX - offset.value.x
-    draggingNote.value.y = event.clientY - offset.value.y
-  }
-}
-
-const stopDragging = () => {
-  draggingNote.value = null
-}
-
-const updateNote = (payload: { id: number; text?: string; color?: string }) => {
-  const note = notes.value.find((n) => n.id === payload.id)
-  if (note) {
-    if (payload.text !== undefined) note.text = payload.text
-    if (payload.color !== undefined) note.color = payload.color
-    note.isNew = false
-  }
-}
-
-const deleteNote = (id: number) => {
-  notes.value = notes.value.filter((note) => note.id !== id)
 }
 </script>
 
 <template>
   <div
     class="wall"
-    @mousedown.left="addNote"
+    @mousedown.left="handleWallClick"
     @mousemove="onMouseMove"
     @mouseup="stopDragging"
     @mouseleave="stopDragging"
@@ -102,8 +37,8 @@ const deleteNote = (id: number) => {
       :key="note.id"
       v-bind="note"
       @delete="deleteNote"
-      @update="updateNote"
-      @drag-start="startDragging"
+      @update="(payload) => updateNote(payload.id, payload)"
+      @drag-start="handleDragStart"
     />
   </div>
 </template>
@@ -115,7 +50,6 @@ const deleteNote = (id: number) => {
   background-color: #e0e0e0;
   overflow: hidden;
 }
-
 .instruction {
   position: absolute;
   top: 20px;
