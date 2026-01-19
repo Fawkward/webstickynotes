@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import StickyNote from './components/StickyNote.vue'
-import { useNotes } from './composables/useNotes' 
-import { useDraggable } from './composables/useDraggable' 
+import { useNotes } from './composables/useNotes'
+import { useDraggable } from './composables/useDraggable'
 
-const { notes, addNote, deleteNote, updateNote } = useNotes()
+const { notes, addNote, deleteNote, updateNote, importNotes, exportNotes } = useNotes()
 
 const { startDragging, onMouseMove, stopDragging } = useDraggable()
 
@@ -30,6 +30,13 @@ const handleDragStart = (payload: { id: number; event: MouseEvent }) => {
     @mouseup="stopDragging"
     @mouseleave="stopDragging"
   >
+    <div class="controls">
+      <button @click="exportNotes" class="btn">Export JSON</button>
+      <label class="btn">
+        Import JSON
+        <input type="file" @change="importNotes" accept=".json" hidden />
+      </label>
+    </div>
     <div class="instruction">Click to spawn sticker</div>
 
     <StickyNote
@@ -58,5 +65,26 @@ const handleDragStart = (payload: { id: number; event: MouseEvent }) => {
   color: rgba(49, 48, 48, 0.3);
   font-family: sans-serif;
   pointer-events: none;
+}
+.controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 1000;
+}
+.btn {
+  padding: 8px 16px;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: sans-serif;
+  font-size: 14px;
+  border: 1px solid #ddd;
+}
+.btn:hover {
+  background: #f5f5f5;
 }
 </style>
