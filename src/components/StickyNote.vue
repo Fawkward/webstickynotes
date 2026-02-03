@@ -56,12 +56,17 @@ const changeColor = (newColor: string) => {
 
 <style scoped>
 .sticky-note {
+  cursor: pointer;
   position: absolute;
   width: 220px;
   min-height: 220px;
   padding: 25px 15px 15px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
   animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.sticky-note:active {
+  cursor: grabbing;
 }
 
 .delete-btn {
